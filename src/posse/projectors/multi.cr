@@ -23,6 +23,11 @@ module Posse
         self
       end
 
+      def upsert(key : String, value)
+        @operations << Operation.new(Kind::Upsert, key, Posse::Value.new(value))
+        self
+      end
+
       def delete(key : String)
         @operations << Operation.new(Kind::Delete, key, nil)
         self

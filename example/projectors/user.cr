@@ -23,6 +23,10 @@ module Example
           multi.update("user:#{event.id}", Posse::Value.new(current))
         end
       end
+
+      project Events::WelcomeSent do |_event, _metadata, multi|
+        multi
+      end
     end
   end
 end

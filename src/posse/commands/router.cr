@@ -31,8 +31,22 @@ module Posse
             Log.debug { "Subscribing store #{store.object_id}" }
 
             \{% for projector in Object.all_subclasses.select { |t| t.ancestors.includes?(Posse::Projectors::Projector) } %}
-              store.subscribe do |event, metadata|
+              store.subscribe(\{{ projector }}.name) do |event, metadata|
                 \{{ projector }}.handle(event, metadata)
+
+                if event_number = metadata["event_number"]?
+                  store.acknowledge(\{{ projector }}.name, event_number.raw(Int64))
+                end
+              end
+            \{% end %}
+
+            \{% for process_manager in Object.all_subclasses.select { |t| t.ancestors.includes?(Posse::ProcessManagers::ProcessManager) } %}
+              store.subscribe(\{{ process_manager }}.name) do |event, metadata|
+                \{{ process_manager }}.handle(event, metadata)
+
+                if event_number = metadata["event_number"]?
+                  store.acknowledge(\{{ process_manager }}.name, event_number.raw(Int64))
+                end
               end
             \{% end %}
           end
@@ -48,7 +62,7 @@ module Posse
 
             Log.debug { "Scheduling async snapshot for #{aggregate_id} at version #{snapshot_to_write.version} (#{since_last_snapshot} events since last snapshot)" }
 
-            spawn do
+            spawn name: "snapshot:worker:#{aggregate_id}" do
               begin
                 snapshot_store.put(aggregate_id, snapshot_to_write)
                 Log.debug { "Snapshot committed for #{aggregate_id} at version #{snapshot_to_write.version}" }
@@ -58,7 +72,7 @@ module Posse
             end
           end
 
-          def {{ @type }}.run_core_pipeline(aggregate_class, command, aggregate_id : String, store : Posse::EventStore::Base? = nil) : Posse::Commands::Result
+          def {{ @type }}.run_core_pipeline(aggregate_class, command, aggregate_id : String, store : Posse::EventStore::Base? = nil, consistency : Posse::Commands::Consistency::Any = Posse::Commands::Consistency::Kind::Eventual) : Posse::Commands::Result
             Log.debug { "Running core pipeline for #{aggregate_class} aggregate_id=#{aggregate_id} command=#{command.class}" }
 
             active_store = store || self.event_store
@@ -86,7 +100,7 @@ module Posse
             Log.debug { "Produced #{new_events.size} new event(s) for aggregate_id=#{aggregate_id}" }
 
             new_version = if active_store
-              active_store.append(aggregate_id, expected_version, new_events)
+              active_store.append(aggregate_id, expected_version, new_events, consistency: consistency)
             else
               expected_version + new_events.size
             end
@@ -122,7 +136,7 @@ module Posse
         {% command_list = command_types.is_a?(ArrayLiteral) ? command_types : [command_types] %}
 
         {% unless @type.has_method?(:execute_pipeline) %}
-          def self.execute_pipeline(aggregate_class, command, aggregate_id : String, event_store : Posse::EventStore::Base? = nil, **kwargs) : Posse::Commands::Result
+          def self.execute_pipeline(aggregate_class, command, aggregate_id : String, event_store : Posse::EventStore::Base? = nil, consistency : Posse::Commands::Consistency::Any = Posse::Commands::Consistency::Kind::Eventual, **kwargs) : Posse::Commands::Result
             {% behaviors = [] of ASTNode %}
 
             {% for method in @type.class.methods %}
@@ -158,7 +172,7 @@ module Posse
             {% end %}
 
             begin
-              pipeline.response = run_core_pipeline(aggregate_class, command, aggregate_id, store: event_store)
+              pipeline.response = run_core_pipeline(aggregate_class, command, aggregate_id, store: event_store, consistency: consistency)
             rescue exception
               Log.error(exception: exception) { "Core pipeline failed for aggregate_id=#{aggregate_id}: #{exception.message}" }
 

@@ -32,6 +32,15 @@ module Example
         )
       end
 
+      def execute(command : Commands::SendWelcome)
+        apply(
+          Events::WelcomeSent.new(
+            id: command.id,
+            email: command.email
+          )
+        )
+      end
+
       def on(event : Events::UserRegistered)
         @id = event.id
         @first_name = event.first_name
@@ -42,6 +51,9 @@ module Example
 
       def on(event : Events::UserFirstNameChanged)
         @first_name = event.first_name
+      end
+
+      def on(event : Events::WelcomeSent)
       end
 
       def to_snapshot_payload : String
@@ -57,11 +69,11 @@ module Example
       def restore_snapshot(snapshot : Posse::Aggregates::Snapshot) : Nil
         data = JSON.parse(snapshot.payload)
 
-        @id         = data["id"].as_s
+        @id = data["id"].as_s
         @first_name = data["first_name"].as_s
-        @last_name  = data["last_name"].as_s
-        @email      = data["email"].as_s
-        @password   = data["password"].as_s
+        @last_name = data["last_name"].as_s
+        @email = data["email"].as_s
+        @password = data["password"].as_s
       end
     end
   end

@@ -110,23 +110,6 @@ And run this command in your terminal:
 shards install
 ```
 
-## Project Structure
-
-Recommended directory layout for a Posse-powered Crystal application:
-
-```text
-my_application/
-├── src/
-│   ├── application.cr       # Application entry point & router setup
-│   ├── commands/            # Domain commands
-│   ├── events/              # Domain events & upcasters
-│   ├── aggregates/          # Aggregate roots & snapshot logic
-│   ├── projectors/          # Read-model projectors
-│   └── process_managers/    # Sagas & workflow automation
-├── shards.yml
-└── spec/
-```
-
 ## Contribute
 
 See our [contribution guidelines](https://github.com/posse-framework/posse/blob/master/CONTRIBUTING.md) and read the [code of conduct](https://github.com/posse-framework/posse/blob/master/CODE_OF_CONDUCT.md).

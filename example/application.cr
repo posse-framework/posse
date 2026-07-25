@@ -46,7 +46,7 @@ consistency_strategies = [
   Posse::Commands::Consistency::Kind::Strong,
   Posse::Commands::Consistency::Wait[Example::Projectors::User],
   Posse::Commands::Consistency::Wait[Example::ProcessManagers::Welcome],
-  Posse::Commands::Consistency::Wait[Example::Projectors::User, Example::ProcessManagers::Welcome]
+  Posse::Commands::Consistency::Wait[Example::Projectors::User, Example::ProcessManagers::Welcome],
 ]
 
 loop do

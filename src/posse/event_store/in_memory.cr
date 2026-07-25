@@ -9,7 +9,7 @@ module Posse
         result_channel : Channel(Int64 | Exception)
 
       def initialize
-        @streams = Hash(String, Array(Posse::Events::Event)).new { |h, k| h[k] = [] of Posse::Events::Event }
+        @streams = Hash(String, Array(Posse::Events::Event)).new { |hash, key| hash[key] = [] of Posse::Events::Event }
         @subscribers = [] of Tuple(String, Proc(Posse::Events::Event, Hash(String, Posse::Value), Nil))
         @mutex = Mutex.new
 

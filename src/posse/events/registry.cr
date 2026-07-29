@@ -29,7 +29,7 @@ module Posse
             {% for event_type in Posse::Events::Event.includers %}
               {{ event_type }}.schema_type,
             {% end %}
-          ]
+          ] of String
         end
       end
     end

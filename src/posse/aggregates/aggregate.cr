@@ -35,7 +35,7 @@ module Posse
         def apply(event : Posse::Events::Event)
           Log.debug { "Applying #{event.class}" }
 
-          on(event)
+          dispatch_event(event)
           @changes << event
           @version += 1_i64
         end
@@ -44,7 +44,7 @@ module Posse
           Log.debug { "Hydrating from #{events.size} event(s), starting at version #{@version}" }
 
           events.each do |event|
-            on(event)
+            dispatch_event(event)
             @version += 1_i64
           end
 
@@ -63,9 +63,6 @@ module Posse
         def clear_changes
           Log.debug { "Clearing #{@changes.size} change(s)" }
           @changes.clear
-        end
-
-        def on(event : Posse::Events::Event)
         end
 
         def self.snapshot_schema_version : Int64
@@ -119,6 +116,34 @@ module Posse
             version: @version,
             payload: to_snapshot_payload
           )
+        end
+
+        macro finished
+          def dispatch_event(event : Posse::Events::Event) : Nil
+            \{% on_handlers = [] of ASTNode %}
+
+            \{% for method in @type.methods %}
+              \{% if method.name.stringify == "on" && method.args.size == 1 %}
+                \{% restriction = method.args[0].restriction %}
+                \{% if restriction && !restriction.is_a?(Nop) && restriction.stringify != "Posse::Events::Event" && restriction.stringify != "::Posse::Events::Event" && restriction.stringify != "Event" %}
+                  \{% on_handlers << restriction %}
+                \{% end %}
+              \{% end %}
+            \{% end %}
+
+            \{% if on_handlers.empty? %}
+              Log.warn { "Default event handler has been called for #{event.class}" }
+            \{% else %}
+              case event
+              \{% for event_type in on_handlers %}
+              when \{{ event_type }}
+                on(event.as(\{{ event_type }}))
+              \{% end %}
+              else
+                Log.warn { "Default event handler has been called for #{event.class}" }
+              end
+            \{% end %}
+          end
         end
       end
 

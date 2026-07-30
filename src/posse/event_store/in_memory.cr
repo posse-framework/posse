@@ -12,6 +12,7 @@ module Posse
         @streams = Hash(String, Array(Posse::Events::Event)).new { |hash, key| hash[key] = [] of Posse::Events::Event }
         @subscribers = [] of Tuple(String, Proc(Posse::Events::Event, Hash(String, Posse::Value), Nil))
         @mutex = Mutex.new
+        @event_number = 0_i64
 
         @stream_queues = Hash(String, Channel(Job)).new
         @worker_fibers = Hash(String, Fiber).new
@@ -99,9 +100,9 @@ module Posse
 
         begin
           new_events_with_versions = job.events.each_with_index.map do |event, index|
-            event_version = job.expected_version + index + 1
+            stream_version = job.expected_version + index + 1
             @mutex.synchronize { @streams[stream_id] << event }
-            {event, event_version}
+            {event, stream_version}
           end.to_a
         rescue ex
           Log.error(exception: ex) { "Append failed for stream '#{stream_id}'" }
@@ -114,8 +115,9 @@ module Posse
 
         job.result_channel.send(new_version)
 
-        new_events_with_versions.each do |event, v|
-          publish(event, build_metadata(stream_id, v))
+        new_events_with_versions.each do |event, version|
+          event_number = @mutex.synchronize { @event_number += 1 }
+          publish(event, build_metadata(stream_id, version, event_number))
         end
       end
 
@@ -130,11 +132,12 @@ module Posse
         end
       end
 
-      private def build_metadata(stream_id : String, event_version : Int64) : Hash(String, Posse::Value)
+      private def build_metadata(stream_id : String, stream_version : Int64, event_number : Int64) : Hash(String, Posse::Value)
         Hash(String, Posse::Value){
-          "stream_id"    => Posse::Value.new(stream_id),
-          "event_number" => Posse::Value.new(event_version),
-          "appended_at"  => Posse::Value.new(Time.utc.to_s),
+          "stream_id"      => Posse::Value.new(stream_id),
+          "stream_version" => Posse::Value.new(stream_version),
+          "event_number"   => Posse::Value.new(event_number),
+          "appended_at"    => Posse::Value.new(Time.utc.to_s),
         }
       end
     end

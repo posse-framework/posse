@@ -84,7 +84,7 @@ module Posse
           raise Posse::EventStore::Exceptions::NotImplemented.new(self.class.name, "load(stream_id, after_version)")
         end
 
-        def subscribe(subscriber_name : String, &block : Posse::Events::Event, Hash(String, Posse::Value) -> Nil) : Nil
+        def subscribe(subscriber_name : String, &block : Posse::Events::Event, Hash(String, JSON::Any) -> Nil) : Nil
           @tracker_mutex.synchronize { @registered_handler_names << subscriber_name }
           raise Posse::EventStore::Exceptions::NotImplemented.new(self.class.name, "subscribe")
         end

@@ -14,13 +14,13 @@ module Example
           password: event.password
         )
 
-        multi.insert("user:#{event.id}", Posse::Value.new(projection))
+        multi.insert("user:#{event.id}", JSON.parse(projection.to_json))
       end
 
       project Events::UserFirstNameChanged do |event, _metadata, multi|
         if current = store.get("user:#{event.id}", Projections::User)
           current.first_name = event.first_name
-          multi.update("user:#{event.id}", Posse::Value.new(current))
+          multi.update("user:#{event.id}", JSON.parse(current.to_json))
         end
       end
 

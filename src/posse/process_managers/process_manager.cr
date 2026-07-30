@@ -16,7 +16,7 @@ module Posse
             \{% end %}
           \{% end %}
 
-          def self.handle(event : Posse::Events::Event, metadata : Hash(String, Posse::Value)) : Nil
+          def self.handle(event : Posse::Events::Event, metadata : Hash(String, JSON::Any)) : Nil
             \{% if handlers.empty? %}
               Log.debug { "No reactions registered, skipping event #{event.class}" }
               return
@@ -24,12 +24,11 @@ module Posse
               router = @@router || raise Posse::ProcessManagers::Exceptions::RouterNotConfigured.new(self.name)
 
               if store = @@store
-                if event_number_value = metadata["event_number"]?
-                  event_number = event_number_value.raw(Int64)
+                if event_number = metadata["event_number"]?
                   key = "process_manager_version:#{self.name}"
 
                   if current = store.get(key, Int64)
-                    if event_number <= current
+                    if event_number.as_i64 <= current
                       Log.warn { "Skipping already-seen event #{event_number} for #{self.name} (last seen: #{current})" }
                       return
                     end
@@ -49,11 +48,11 @@ module Posse
               end
 
               if store = @@store
-                if event_number_value = metadata["event_number"]?
+                if event_number = metadata["event_number"]?
                   multi = Posse::Projectors::Multi.new
-                  multi.upsert("process_manager_version:#{self.name}", event_number_value.raw(Int64))
+                  multi.upsert("process_manager_version:#{self.name}", event_number)
                   store.commit(multi)
-                  Log.debug { "Tracked version #{event_number_value.raw(Int64)} for #{self.name}" }
+                  Log.debug { "Tracked version #{event_number.as_i64} for #{self.name}" }
                 end
               end
             \{% end %}
@@ -71,7 +70,7 @@ module Posse
 
         def self.{{ method_name }}(
           {{ event_argument }}  : {{ event_type }},
-          {{ meta_argument }}   : Hash(String, Posse::Value),
+          {{ meta_argument }}   : Hash(String, JSON::Any),
           {{ router_argument }}
         )
           {{ block.body }}

@@ -10,7 +10,7 @@ module Posse
 
       def initialize
         @streams = Hash(String, Array(Posse::Events::Event)).new { |hash, key| hash[key] = [] of Posse::Events::Event }
-        @subscribers = [] of Tuple(String, Proc(Posse::Events::Event, Hash(String, Posse::Value), Nil))
+        @subscribers = [] of Tuple(String, Proc(Posse::Events::Event, Hash(String, JSON::Any), Nil))
         @mutex = Mutex.new
         @event_number = 0_i64
 
@@ -60,7 +60,7 @@ module Posse
         events
       end
 
-      def subscribe(subscriber_name : String, &block : Posse::Events::Event, Hash(String, Posse::Value) -> Nil) : Nil
+      def subscribe(subscriber_name : String, &block : Posse::Events::Event, Hash(String, JSON::Any) -> Nil) : Nil
         @tracker_mutex.synchronize { @registered_handler_names << subscriber_name }
         @mutex.synchronize { @subscribers << {subscriber_name, block} }
       end
@@ -121,7 +121,7 @@ module Posse
         end
       end
 
-      private def publish(event : Posse::Events::Event, metadata : Hash(String, Posse::Value)) : Nil
+      private def publish(event : Posse::Events::Event, metadata : Hash(String, JSON::Any)) : Nil
         subscribers = @mutex.synchronize { @subscribers.dup }
         Log.debug { "Notifying #{subscribers.size} subscriber(s) for event #{event.class.name}" }
 
@@ -132,12 +132,12 @@ module Posse
         end
       end
 
-      private def build_metadata(stream_id : String, stream_version : Int64, event_number : Int64) : Hash(String, Posse::Value)
-        Hash(String, Posse::Value){
-          "stream_id"      => Posse::Value.new(stream_id),
-          "stream_version" => Posse::Value.new(stream_version),
-          "event_number"   => Posse::Value.new(event_number),
-          "appended_at"    => Posse::Value.new(Time.utc.to_s),
+      private def build_metadata(stream_id : String, stream_version : Int64, event_number : Int64) : Hash(String, JSON::Any)
+        Hash(String, JSON::Any){
+          "stream_id"      => JSON::Any.new(stream_id),
+          "stream_version" => JSON::Any.new(stream_version),
+          "event_number"   => JSON::Any.new(event_number),
+          "appended_at"    => JSON::Any.new(Time.utc.to_s),
         }
       end
     end

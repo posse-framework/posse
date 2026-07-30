@@ -4,7 +4,7 @@ module Posse
       macro included
         Log = ::Log.for(self)
 
-        def self.after_update(event : Posse::Events::Event, metadata : Hash(String, Posse::Value), multi : Posse::Projectors::Multi) : Nil
+        def self.after_update(event : Posse::Events::Event, metadata : Hash(String, JSON::Any), multi : Posse::Projectors::Multi) : Nil
         end
 
         macro finished
@@ -15,7 +15,7 @@ module Posse
             \{% end %}
           \{% end %}
 
-          def self.handle(event : Posse::Events::Event, metadata : Hash(String, Posse::Value)) : Nil
+          def self.handle(event : Posse::Events::Event, metadata : Hash(String, JSON::Any)) : Nil
             \{% if handlers.empty? %}
               Log.debug { "No handlers registered, skipping event #{event.class}" }
               return
@@ -27,8 +27,8 @@ module Posse
               when \{{ method.args[0].restriction }}
                 Log.debug { "Handling #{event.class}" }
 
-                if event_number_value = metadata["event_number"]?
-                  multi.track_version(self.name, event_number_value.raw(Int64))
+                if event_number = metadata["event_number"]?
+                  multi.track_version(self.name, event_number.as_i64)
                 end
 
                 \{{ method.name }}(event, metadata, multi)
@@ -78,7 +78,7 @@ module Posse
 
         def self.{{ method_name }}(
           {{ event_argument }} : {{ event_type }},
-          {{ meta_argument }}  : Hash(String, Posse::Value),
+          {{ meta_argument }}  : Hash(String, JSON::Any),
           {{ multi_argument }} : Posse::Projectors::Multi
         )
           {{ block.body }}

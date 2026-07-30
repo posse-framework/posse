@@ -9,7 +9,7 @@ module Posse
       property exception : Exception?
       getter? halted : Bool = false
 
-      @assigns : Hash(String, Posse::Value)? = nil
+      @assigns : Hash(String, JSON::Any)? = nil
 
       def initialize(@command, @aggregate_id)
         Log.debug { "Initialized pipeline for aggregate_id=#{@aggregate_id} command=#{@command.class}" }
@@ -23,12 +23,12 @@ module Posse
 
       def assign(key : String, value : T) : self forall T
         Log.debug { "Assigning key=#{key} type=#{T}" }
-        (@assigns ||= Hash(String, Posse::Value).new(initial_capacity: 4))[key] = Box.new(value)
+        (@assigns ||= Hash(String, JSON::Any).new(initial_capacity: 4))[key] = JSON::Any.new(value)
         self
       end
 
-      def assigns : Hash(String, Posse::Value)
-        @assigns ||= Hash(String, Posse::Value).new(initial_capacity: 4)
+      def assigns : Hash(String, JSON::Any)
+        @assigns ||= Hash(String, JSON::Any).new(initial_capacity: 4)
       end
 
       def fetch(key : String, type : T.class) : T forall T

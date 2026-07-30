@@ -35,7 +35,7 @@ module Posse
                 \{{ projector }}.handle(event, metadata)
 
                 if event_number = metadata["event_number"]?
-                  store.acknowledge(\{{ projector }}.name, event_number.raw(Int64))
+                  store.acknowledge(\{{ projector }}.name, event_number.as_i64)
                 end
               end
             \{% end %}
@@ -45,7 +45,7 @@ module Posse
                 \{{ process_manager }}.handle(event, metadata)
 
                 if event_number = metadata["event_number"]?
-                  store.acknowledge(\{{ process_manager }}.name, event_number.raw(Int64))
+                  store.acknowledge(\{{ process_manager }}.name, event_number.as_i64)
                 end
               end
             \{% end %}

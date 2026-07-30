@@ -8,7 +8,7 @@ module Posse
 
         include Posse::Projectors::Stores::Store
 
-        getter records = Hash(String, Posse::Value).new
+        getter records = Hash(String, JSON::Any).new
         getter versions = Hash(String, Int64).new
 
         def initialize
@@ -17,7 +17,9 @@ module Posse
 
         def get(key : String, type : T.class) : T? forall T
           @mutex.synchronize do
-            @records[key]?.try(&.raw(T))
+            if payload = @records[key]?
+              T.from_json(payload.to_json)
+            end
           end
         end
 
@@ -38,6 +40,8 @@ module Posse
               Log.debug { "Tracking version #{version.last_seen_event_number} for #{version.projection_name} (was: #{current_last_seen})" }
               @versions[version.projection_name] = version.last_seen_event_number
             end
+
+            multi.actions.each(&.call)
 
             Log.debug { "Committing #{multi.operations.size} operation(s)" }
 

@@ -3,8 +3,9 @@ module Posse
     class Multi
       Log = ::Log.for(self)
 
-      record Operation, kind : Kind, key : String, payload : Posse::Value?
+      record Operation, kind : Kind, key : String, payload : JSON::Any?
 
+      getter actions = [] of Proc(Nil)
       getter operations = [] of Operation
       property version_track : VersionTrack? = nil
 
@@ -13,18 +14,18 @@ module Posse
         self
       end
 
-      def insert(key : String, value)
-        @operations << Operation.new(Kind::Insert, key, Posse::Value.new(value))
+      def insert(key : String, value : JSON::Any)
+        @operations << Operation.new(Kind::Insert, key, value)
         self
       end
 
-      def update(key : String, value)
-        @operations << Operation.new(Kind::Update, key, Posse::Value.new(value))
+      def update(key : String, value : JSON::Any)
+        @operations << Operation.new(Kind::Update, key, value)
         self
       end
 
-      def upsert(key : String, value)
-        @operations << Operation.new(Kind::Upsert, key, Posse::Value.new(value))
+      def upsert(key : String, value : JSON::Any)
+        @operations << Operation.new(Kind::Upsert, key, value)
         self
       end
 
@@ -33,8 +34,13 @@ module Posse
         self
       end
 
+      def add(&block : -> Nil)
+        @actions << block
+        self
+      end
+
       def empty? : Bool
-        @operations.empty? && @version_track.nil?
+        @operations.empty? && @actions.empty? && @version_track.nil?
       end
     end
   end
